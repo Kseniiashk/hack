@@ -53,6 +53,9 @@ from core.graph import build_graph, to_vis_html
 
 st.set_page_config(page_title="Фабрика гипотез", page_icon="⚗️", layout="wide")
 
+import ui_theme as ui  # noqa: E402
+st.markdown(ui.inject_css(), unsafe_allow_html=True)
+
 # Примеры лежат в проекте (data/examples), чтобы демо работало где угодно
 # (в т.ч. на Hugging Face Spaces). Если рядом есть оригинальные данные кейса —
 # они тоже подхватятся.
@@ -107,8 +110,13 @@ def llm_refine_cached(facts: str, backend_name: str) -> str:
 
 
 # ----------------------------- Sidebar ---------------------------------------
-st.sidebar.title("⚗️ Фабрика гипотез")
-st.sidebar.caption("Генерация и приоритизация гипотез по снижению потерь металла с хвостами обогащения")
+st.sidebar.markdown(
+    "<div style='font-family:var(--mono);font-size:12px;letter-spacing:.18em;"
+    "text-transform:uppercase;color:#e0954f;margin-bottom:2px'>Панель управления</div>"
+    "<div style='font-size:20px;font-weight:680;color:#eaf1f7;margin-bottom:2px'>Фабрика гипотез</div>"
+    "<div style='font-size:12.5px;color:#93a9ba;line-height:1.45'>Снижение потерь металла "
+    "с хвостами обогащения</div><hr style='border-color:#1f3547;margin:14px 0'>",
+    unsafe_allow_html=True)
 
 src_mode = st.sidebar.radio("Источник данных", ["Готовый пример", "Загрузить .xlsx"])
 
@@ -130,8 +138,10 @@ else:
             tmp = tf.name
         report = parse_tailings_xlsx(tmp, plant)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("⚙️ Экспертная настройка весов")
+st.sidebar.markdown(
+    "<div style='font-family:var(--mono);font-size:11px;letter-spacing:.14em;"
+    "text-transform:uppercase;color:#61788b;margin:14px 0 4px'>Экспертная настройка весов</div>",
+    unsafe_allow_html=True)
 w_value = st.sidebar.slider("Ценность (эффект на KPI)", 0.0, 1.0, DEFAULT_WEIGHTS["value"], 0.05)
 w_feas = st.sidebar.slider("Реализуемость", 0.0, 1.0, DEFAULT_WEIGHTS["feasibility"], 0.05)
 w_nov = st.sidebar.slider("Новизна", 0.0, 1.0, DEFAULT_WEIGHTS["novelty"], 0.05)
@@ -154,11 +164,14 @@ if _YANDEX_READY:
 
 
 # ----------------------------- Main ------------------------------------------
-st.title("Фабрика гипотез")
-st.caption("Обогащение сульфидных руд цветных металлов · Элемент 28 = Ni · Элемент 29 = Cu")
+st.markdown(ui.hero_html(_YANDEX_READY), unsafe_allow_html=True)
 
 if report is None:
-    st.info("Выберите пример или загрузите файл хвостов в панели слева.")
+    st.markdown(
+        "<div class='welcome'>Выберите <b>готовый пример</b> или загрузите файл "
+        "<b>Хвосты*.xlsx</b> в панели слева — система разложит потери металла "
+        "по классам крупности и минералам и предложит ранжированные гипотезы.</div>",
+        unsafe_allow_html=True)
     st.stop()
 
 if report.warnings:
@@ -193,21 +206,15 @@ if use_llm:
                         "обоснование.")
 
 # --- KPI-строка ---
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Хвосты, т/год", f"{report.tail_mass_t:,.0f}")
-c2.metric("Потери Ni в хвостах", f"{report.tail_el28_t:,.0f} т",
-          f"{report.tail_el28_pct:.3f}%")
-c3.metric("Потери Cu в хвостах", f"{report.tail_el29_t:,.0f} т",
-          f"{report.tail_el29_pct:.3f}%")
-c4.metric("Потолок эффекта", f"{diag.total_value_musd:.0f} M$/год",
-          help="Стоимость всего извлекаемого металла, теряемого с хвостами")
+st.markdown(ui.kpi_row_html(report, diag.total_value_musd), unsafe_allow_html=True)
 
 tab1, tab2, tabG, tabE, tab3 = st.tabs(
-    ["📊 Диагностика", "💡 Гипотезы", "🕸️ Граф знаний", "💰 Экономика / KPI", "📤 Экспорт"])
+    ["Диагностика", "Гипотезы", "Граф знаний", "Экономика / KPI", "Экспорт"])
 
 # ===== Диагностика =====
 with tab1:
-    st.subheader("Распределение потерь металла по классам крупности")
+    st.markdown("<div class='sec-label'>Распределение потерь по классам крупности</div>",
+                unsafe_allow_html=True)
     rows = []
     for c in report.classes:
         rows.append({
@@ -239,79 +246,41 @@ with tab1:
         }, index=[c.size for c in report.classes])
         st.bar_chart(lib)
 
-    st.subheader("Ключевые находки диагностики")
+    st.markdown("<div class='sec-label'>Ключевые находки диагностики</div>",
+                unsafe_allow_html=True)
+    # сначала причины, потолок — последним
+    for f in diag.findings:
+        if f.code != "RECOVERABLE_CEILING":
+            st.markdown(ui.finding_html(f), unsafe_allow_html=True)
     for f in diag.findings:
         if f.code == "RECOVERABLE_CEILING":
-            st.success(f"🎯 **{f.headline}**\n\n{f.detail}")
-        else:
-            icon = {"UNDERGRIND": "🔨", "SLIMES": "🌫️", "MIDGRIND": "⚙️"}.get(f.code, "•")
-            with st.expander(f"{icon} {f.headline}  ·  ≈{f.value_musd:.1f} M$/год"):
-                st.write(f.detail)
-                st.json(f.evidence)
+            st.markdown(ui.finding_html(f), unsafe_allow_html=True)
 
 # ===== Гипотезы =====
 with tab2:
-    st.subheader(f"Ранжированные гипотезы ({len(hyps)})")
-    st.caption("Score = w·Ценность + w·Реализуемость + w·Новизна − w·Риск. "
-               "Веса и цены настраиваются слева.")
+    st.markdown(
+        f"<div class='sec-label'>Ранжированные гипотезы · {len(hyps)} шт · "
+        f"Score = ценность + реализуемость + новизна − риск</div>",
+        unsafe_allow_html=True)
     for i, h in enumerate(hyps, 1):
-        with st.expander(f"**{i}. {h.title}**  ·  Score {h.score:.2f}  ·  "
-                         f"≈{h.value_musd:.1f} M$/год  ·  класс {h.size_class}", expanded=(i <= 3)):
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Эффект", f"{h.value_musd:.1f} M$")
-            m2.metric("Реализуемость", f"{h.feasibility:.2f}")
-            m3.metric("Новизна", f"{h.novelty:.2f}")
-            m4.metric("Риск", f"{h.risk:.2f}")
-            llm_txt = getattr(h, "llm_rationale", "")
-            if llm_txt:
-                st.markdown(f"**Обоснование (LLM).** {llm_txt}")
-                with st.popover("детерминированное обоснование"):
-                    st.write(h.rationale)
-            else:
-                st.markdown(f"**Обоснование.** {h.rationale}")
-            st.markdown(f"**Механизм влияния.** {h.mechanism}")
-            if h.equipment:
-                st.markdown(f"**Оборудование:** {', '.join(h.equipment)} · "
-                            f"**Передел:** {h.stage}")
-            if h.success_criterion:
-                st.markdown(f"**Критерий успеха.** {h.success_criterion}")
-            if h.roadmap:
-                st.markdown("**Дорожная карта проверки:**")
-                for step in h.roadmap:
-                    st.markdown(f"- {step}")
-            if h.citations:
-                st.markdown("**Источники (литература):**")
-                for c in h.citations:
-                    pg = f", с.{c['page']}" if c.get("page") else ""
-                    st.markdown(f"> «{c['snippet']}»  \n— *{c['source']}{pg}*")
-
-            # --- Обучение на фидбэке ---
-            st.markdown("---")
-            fb_stats = getattr(h, "fb_stats", None)
-            fb_mult = getattr(h, "fb_multiplier", 1.0)
-            cap = "**Оценка эксперта.**"
-            if fb_stats:
-                cap += (f" История: ✅{fb_stats.get('confirmed',0)} "
-                        f"❌{fb_stats.get('refuted',0)} 🚫{fb_stats.get('rejected',0)} "
-                        f"· множитель ранга ×{fb_mult}")
-            st.caption(cap)
-            fc1, fc2, fc3 = st.columns(3)
-            if fc1.button("✅ Подтверждена", key=f"c_{h.id}_{i}"):
-                fb.record(h.id, fb.CONFIRMED, plant=diag.plant); st.rerun()
-            if fc2.button("❌ Опровергнута", key=f"r_{h.id}_{i}"):
-                fb.record(h.id, fb.REFUTED, plant=diag.plant); st.rerun()
-            if fc3.button("🚫 Отклонить", key=f"x_{h.id}_{i}"):
-                fb.record(h.id, fb.REJECTED, plant=diag.plant); st.rerun()
+        st.markdown(ui.hypothesis_html(i, h), unsafe_allow_html=True)
+        # компактный ряд оценки эксперта под карточкой
+        fc1, fc2, fc3, _sp = st.columns([1.1, 1.1, 1.0, 3.8])
+        if fc1.button("Подтвердить", key=f"c_{h.id}_{i}"):
+            fb.record(h.id, fb.CONFIRMED, plant=diag.plant); st.rerun()
+        if fc2.button("Опровергнуть", key=f"r_{h.id}_{i}"):
+            fb.record(h.id, fb.REFUTED, plant=diag.plant); st.rerun()
+        if fc3.button("Отклонить", key=f"x_{h.id}_{i}"):
+            fb.record(h.id, fb.REJECTED, plant=diag.plant); st.rerun()
 
 # ===== Граф знаний =====
 with tabG:
-    st.subheader("Граф знаний: от наблюдения в данных к вмешательству")
-    st.caption("Класс крупности → форма потерь → причина → гипотеза → оборудование. "
-               "Наведите на узел для подробностей; граф отражает картину именно этой фабрики.")
+    st.markdown(
+        "<div class='sec-label'>Граф знаний · наблюдение → причина → гипотеза → оборудование</div>",
+        unsafe_allow_html=True)
+    st.caption("Граф отражает картину потерь именно этой фабрики. Наведите на узел для подробностей.")
     top_g = st.slider("Гипотез на графе", 3, min(12, len(hyps)), min(8, len(hyps)))
-    # Граф (~0.5 МБ интерактивного HTML) строим по кнопке, чтобы не утяжелять
-    # первый рендер и стабильно работать за прокси хостинга.
-    if st.button("🕸️ Построить граф", key="build_graph"):
+    if st.button("Построить граф", key="build_graph"):
         st.session_state["show_graph"] = True
     if st.session_state.get("show_graph"):
         G = build_graph(diag, hyps, top_n=int(top_g))
@@ -325,18 +294,19 @@ with tabG:
                 st.text(f"{G.nodes[u].get('label','')}  —{d.get('label','')}→  "
                         f"{G.nodes[v].get('label','')}")
     else:
-        st.info("Нажмите «Построить граф», чтобы отрисовать интерактивную схему связей.")
+        st.markdown("<div class='welcome'>Нажмите <b>«Построить граф»</b>, чтобы отрисовать "
+                    "интерактивную схему связей.</div>", unsafe_allow_html=True)
 
 # ===== Экономика / KPI =====
 with tabE:
-    st.subheader("Экономика и KPI")
-    e1, e2, e3, e4 = st.columns(4)
-    e1.metric("Извлечение Ni сейчас", f"{kpi.recovery_ni_pct:.2f}%")
-    e2.metric("Извлечение Ni после (топ-5)", f"{kpi.new_recovery_ni_pct:.2f}%",
-              f"+{kpi.new_recovery_ni_pct - kpi.recovery_ni_pct:.2f} п.п.")
-    e3.metric("Содержание Ni в хвостах", f"{kpi.tail_ni_pct:.3f}%",
-              f"→ {kpi.new_tail_ni_pct:.3f}% прогноз", delta_color="inverse")
-    e4.metric("Эффект портфеля топ-5", f"{kpi.portfolio_musd:.1f} M$/год")
+    st.markdown("<div class='sec-label'>Экономика и целевые KPI</div>", unsafe_allow_html=True)
+    ec = ui.eco_cards_html(kpi)
+    ce1, ce2, ce3, ce4 = st.columns(4)
+    ce1.markdown(ec["recov"], unsafe_allow_html=True)
+    ce2.markdown(ec["after"], unsafe_allow_html=True)
+    ce3.markdown(ec["tail"], unsafe_allow_html=True)
+    ce4.markdown(ec["port"], unsafe_allow_html=True)
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
     st.markdown(
         f"**Потолок эффекта:** {kpi.ceiling_musd:.1f} млн $/год — стоимость всего "
@@ -363,28 +333,27 @@ with tabE:
 
 # ===== Экспорт =====
 with tab3:
-    st.subheader("Экспорт результатов")
+    st.markdown("<div class='sec-label'>Экспорт результатов</div>", unsafe_allow_html=True)
     top_n = st.number_input("Сколько гипотез включить в отчёт", 1, len(hyps),
                             min(8, len(hyps)))
     colx, coly, colz = st.columns(3)
     with colx:
-        if st.button("📄 Сформировать DOCX-отчёт"):
+        if st.button("Сформировать DOCX-отчёт"):
             out = os.path.join(tempfile.gettempdir(), f"{diag.plant}_гипотезы.docx")
             build_docx(diag, hyps, out, top_n=int(top_n))
             with open(out, "rb") as f:
                 st.download_button("Скачать DOCX", f.read(),
                                    file_name=f"{diag.plant}_гипотезы.docx")
     with coly:
-        st.download_button("📊 Скачать CSV (Jira/YouTrack)",
+        st.download_button("Скачать CSV (Jira/YouTrack)",
                            hypotheses_to_csv(hyps),
                            file_name=f"{diag.plant}_гипотезы.csv")
     with colz:
-        st.download_button("🔗 Скачать JSON (API)",
+        st.download_button("Скачать JSON (API)",
                            hypotheses_to_json(hyps),
                            file_name=f"{diag.plant}_гипотезы.json")
 
-    st.markdown("---")
-    st.markdown("**Предпросмотр таблицы задач:**")
+    st.markdown("<div class='sec-label'>Предпросмотр таблицы задач</div>", unsafe_allow_html=True)
     prev = pd.DataFrame([{
         "Ранг": i + 1, "Гипотеза": h.title, "Score": round(h.score, 2),
         "Эффект,M$": round(h.value_musd, 1), "Класс": h.size_class,
