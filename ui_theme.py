@@ -137,11 +137,48 @@ h1, h2, h3 {{ color: var(--ink); letter-spacing: -0.01em; }}
   font-variant-numeric: tabular-nums; }}
 .ecard .n {{ font-size:12px; color:var(--dim); margin-top:3px; }}
 
-/* ---- вкладки ---- */
-.stTabs [data-baseweb="tab-list"] {{ gap: 4px; border-bottom: 1px solid var(--line); }}
-.stTabs [data-baseweb="tab"] {{ color: var(--dim); font-weight: 500; }}
+/* ---- вкладки (принудительно горизонтально, чтобы не «склеивались») ---- */
+.stTabs [data-baseweb="tab-list"] {{
+  display: flex !important; flex-direction: row !important; flex-wrap: wrap !important;
+  gap: 6px; border-bottom: 1px solid var(--line); overflow-x: auto;
+}}
+.stTabs [data-baseweb="tab"] {{
+  color: var(--dim) !important; font-weight: 500; white-space: nowrap;
+  padding: 8px 14px !important;
+}}
 .stTabs [aria-selected="true"] {{ color: var(--copper) !important; }}
 .stTabs [data-baseweb="tab-highlight"] {{ background: var(--copper) !important; }}
+
+/* ---- верхняя навигация сайта (st.navigation) ---- */
+[data-testid="stSidebarNav"] {{ background: transparent; }}
+
+/* ---- лендинг ---- */
+.land-hero {{ text-align:center; padding: 30px 0 24px; }}
+.land-hero .eyebrow {{ font-family:var(--mono); font-size:12px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--copper); }}
+.land-hero h1 {{ font-size: clamp(30px,5vw,48px); font-weight:700; line-height:1.06;
+  margin:14px 0 12px; letter-spacing:-.015em; }}
+.land-hero h1 .accent {{ color: var(--copper); }}
+.land-hero p {{ color:var(--dim); font-size:17px; max-width:64ch; margin:0 auto;
+  line-height:1.6; }}
+.land-hero .metaline {{ margin-top:16px; font-family:var(--mono); font-size:12px;
+  color:var(--faint); }}
+.land-hero .metaline b {{ color:var(--nickel); }}
+
+.feat-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:12px 0; }}
+.feat {{ background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:20px 20px 18px; }}
+.feat .n {{ font-family:var(--mono); font-size:12px; color:var(--copper); letter-spacing:.1em; }}
+.feat h3 {{ font-size:17px; margin:10px 0 8px; color:var(--ink); }}
+.feat p {{ font-size:13.5px; color:var(--dim); line-height:1.55; margin:0; }}
+
+.flow {{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }}
+.flow .step {{ background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--line); border-radius:12px; padding:15px 14px; }}
+.flow .step .k {{ font-family:var(--mono); font-size:12px; color:var(--copper); }}
+.flow .step h4 {{ font-size:14px; margin:7px 0 6px; color:var(--ink); }}
+.flow .step p {{ font-size:12px; color:var(--dim); margin:0; line-height:1.45; }}
+@media(max-width:900px){{ .feat-grid,.flow {{ grid-template-columns:1fr 1fr; }} }}
 
 /* ---- кнопки ---- */
 .stButton > button {{ border:1px solid var(--line); background:var(--panel2); color:var(--ink);
@@ -276,3 +313,57 @@ def eco_cards_html(kpi):
         "port": c("Эффект портфеля топ-5", f"{kpi.portfolio_musd:.1f} M$/год",
                   f"Ni +{kpi.portfolio_ni_t:,.0f}т · Cu +{kpi.portfolio_cu_t:,.0f}т", COPPER),
     }
+
+
+# --- Лендинг (Главная) -------------------------------------------------------
+def landing_hero_html():
+    return """
+<div class='land-hero'>
+  <div class='eyebrow'>Норникель · AI Science Hack</div>
+  <h1>Фабрика <span class='accent'>гипотез</span></h1>
+  <p>Превращаем отчёт по хвостам обогатительной фабрики в ранжированные проверяемые
+     инженерные гипотезы — с диагностикой причин потерь металла, обоснованием,
+     ссылками на источники и оценкой экономического эффекта.</p>
+  <div class='metaline'>интерпретируемое ядро · обоснование через <b>Yandex GPT</b> ·
+     цитаты из учебников · ноль выдуманных чисел</div>
+</div>"""
+
+
+def landing_features_html():
+    return """
+<div class='feat-grid'>
+  <div class='feat'>
+    <div class='n'>01 · Диагностика</div>
+    <h3>Где теряется металл</h3>
+    <p>Diagnostic Engine на физике процесса раскладывает потери по классам крупности
+       и минеральным формам: недоизмельчение (сростки) против потери шламов.</p>
+  </div>
+  <div class='feat'>
+    <div class='n'>02 · Гипотезы</div>
+    <h3>Что с этим делать</h3>
+    <p>Каталог инженерных вмешательств (мельницы, гидроциклоны, флотация, реагенты)
+       матчится к диагнозу и ранжируется по ценности, реализуемости, новизне и риску.</p>
+  </div>
+  <div class='feat'>
+    <div class='n'>03 · Обоснование</div>
+    <h3>Почему это сработает</h3>
+    <p>Каждая гипотеза — диагноз с числами, механизм влияния, цитата из учебника,
+       риски и оценка эффекта в млн $/год. Прозрачно и проверяемо экспертом.</p>
+  </div>
+</div>"""
+
+
+def landing_flow_html():
+    return """
+<div class='flow'>
+  <div class='step'><div class='k'>01</div><h4>Приём данных</h4>
+    <p>Парсинг xlsx с хвостами, устойчив к пропускам и артефактам.</p></div>
+  <div class='step'><div class='k'>02</div><h4>Диагностика</h4>
+    <p>Потери по классам × минералам, KPI-потолок, деньги.</p></div>
+  <div class='step'><div class='k'>03</div><h4>Гипотезы</h4>
+    <p>Каталог вмешательств → инстанцирование с числами.</p></div>
+  <div class='step'><div class='k'>04</div><h4>Обоснование</h4>
+    <p>RAG-цитаты + Yandex GPT переписывает факты в текст.</p></div>
+  <div class='step'><div class='k'>05</div><h4>Экспорт</h4>
+    <p>DOCX / CSV / JSON + интерактивный граф связей.</p></div>
+</div>"""
