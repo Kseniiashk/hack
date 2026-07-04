@@ -76,9 +76,17 @@ else:
                        "или в репозитории, папка data/examples/.")
     plant = st.sidebar.text_input("Название фабрики", "Фабрика")
     if up:
+        data = up.getvalue()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as f:
-            f.write(up.read())
-            report = parse_tailings_xlsx(f.name, plant)
+            f.write(data)
+            f.flush()
+            tmp_path = f.name
+        try:
+            report = parse_tailings_xlsx(tmp_path, plant)
+        except Exception:
+            st.sidebar.error("Не удалось прочитать файл. Нужен Excel (.xlsx) с отчётом "
+                             "о хвостах в формате примеров из data/examples/.")
+            report = None
 
 st.sidebar.subheader("Веса ранжирования")
 weights = {
