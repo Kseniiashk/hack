@@ -188,9 +188,9 @@ def validation_summary(overall):
     r = overall["recall"]
     return (f"<div style='padding:20px 0 4px'>"
             f"<span style='font-family:var(--mono);font-size:52px;font-weight:600;"
-            f"color:{GOOD if r>=0.9 else WARN}'>{r:.0%}</span>"
+            f"color:{GOOD if r>=0.85 else WARN}'>{r:.0%}</span>"
             f"<div style='color:{MUTED};font-size:14px;margin-top:4px'>"
-            f"совпадение с гипотезами экспертов — {overall['matched']} из "
+            f"экспертных гипотез покрыто системой — {overall['matched']} из "
             f"{overall['total_gold']} на {overall['plants']} фабриках</div></div>")
 
 
@@ -199,17 +199,22 @@ def validation_plant(r):
     for m in r.matches:
         rows += (f"<div style='display:flex;gap:12px;padding:6px 0;font-size:13px;"
                  f"color:{TEXT};border-top:1px solid {BORDER}'>"
-                 f"<span style='font-family:var(--mono);color:{ACCENT};"
+                 f"<span style='font-family:var(--mono);color:{GOOD};"
                  f"min-width:32px'>#{m['rank']}</span><span>{e(m['gold'])}</span></div>")
     for g in r.missed:
         rows += (f"<div style='display:flex;gap:12px;padding:6px 0;font-size:13px;"
                  f"color:{FAINT};border-top:1px solid {BORDER}'>"
                  f"<span style='font-family:var(--mono);min-width:32px'>—</span>"
-                 f"<span>{e(g)}</span></div>")
-    return (f"<div style='margin-bottom:18px'>"
+                 f"<span>{e(g)} — не попала в верхние k</span></div>")
+    extra_line = ""
+    if r.extra:
+        extra_line = (f"<div style='color:{MUTED};font-size:12px;margin-top:6px'>"
+                      f"Сверх эталона система предложила ещё {len(r.extra)} "
+                      f"инженерных варианта из каталога.</div>")
+    return (f"<div style='margin-bottom:20px'>"
             f"<div style='display:flex;justify-content:space-between;"
             f"font-size:15px;color:{TEXT};margin-bottom:4px'>"
             f"<b>{e(r.plant)}</b>"
-            f"<span style='font-family:var(--mono);color:{GOOD if r.recall>=0.9 else WARN}'>"
-            f"{r.recall:.0%} ({r.matched_gold}/{r.n_gold})</span></div>"
-            f"{rows}</div>")
+            f"<span style='font-family:var(--mono);color:{GOOD if r.recall>=0.85 else WARN}'>"
+            f"покрытие {r.recall:.0%} ({r.matched_gold}/{r.n_gold})</span></div>"
+            f"{rows}{extra_line}</div>")

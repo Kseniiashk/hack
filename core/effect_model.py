@@ -49,6 +49,29 @@ CAPTURE = {
 }
 DEFAULT_CAPTURE = (0.05, 0.12, 0.20)
 
+# Основание коэффициента извлечения и уверенность в нём. Честно показываем, на чём
+# держится оценка, и что нужно измерить, чтобы её уточнить.
+BASIS = {
+    "H_REGRIND_MAGSEP": ("сепарация + отдельный домол — сильное вскрытие сростков", "средняя"),
+    "H_FINE_SCREEN": ("острое грохочение точнее гидроциклона", "средняя"),
+    "H_TAILS_RECLASSIFY": ("прямой возврат крупного класса хвостов", "средняя"),
+    "H_CLASSIFIER_TO_CYCLONE": ("гидроциклон острее спирального классификатора", "средняя"),
+    "H_CLASSIFIER_UPGRADE": ("доп. стадия классификации", "средняя"),
+    "H_CYCLONE_APEX": ("сгущение песков, рост возвратной нагрузки", "высокая"),
+    "H_LINER_GEOMETRY": ("профиль футеровки влияет на раскрытие", "средняя"),
+    "H_BALL_LOAD_120": ("крупные шары — выше ударная энергия", "высокая"),
+    "H_BALL_WEAR_CLASS5": ("стабильность шаровой загрузки", "низкая"),
+    "H_CLASSIFIER_SPEED": ("подстройка крупности слива без замены оборудования", "высокая"),
+    "H_CRUSHER_GRANULO": ("стабилизация питания мельниц", "средняя"),
+    "H_CRUSHER_GAP": ("удержание крупности при износе", "средняя"),
+    "H_PEBBLE_CRUSHER": ("разгрузка мельниц от критического класса", "низкая"),
+    "H_PULP_DENSITY": ("плотность пульпы и флотируемость тонких зёрен", "высокая"),
+    "H_CONTACT_TANKS": ("время контакта реагента с тонкими зёрнами", "средняя"),
+    "H_FLOT_FRONT": ("время флотации в контрольной операции", "средняя"),
+    "H_REAGENT_FINFIX": ("собиратель для тонких раскрытых зёрен", "средняя"),
+    "H_WATER_CONTROL": ("контроль плотности слива, меньше переизмельчения", "высокая"),
+}
+
 
 @dataclass
 class EffectEstimate:
@@ -61,6 +84,8 @@ class EffectEstimate:
     cu_low: float = 0.0; cu_exp: float = 0.0; cu_high: float = 0.0
     musd_low: float = 0.0; musd_exp: float = 0.0; musd_high: float = 0.0
     basis: str = ""              # что взято за адресуемый металл
+    coef_basis: str = ""         # на чём держится коэффициент извлечения
+    confidence: str = ""         # уверенность: высокая/средняя/низкая
     explain: str = ""           # расшифровка расчёта
 
     def to_dict(self):
@@ -111,12 +136,15 @@ def estimate_effect(card_id: str, finding, report, prices) -> EffectEstimate:
     e.musd_exp = money(e.ni_exp, e.cu_exp)
     e.musd_high = money(e.ni_high, e.cu_high)
 
+    e.coef_basis, e.confidence = BASIS.get(card_id, ("экспертное допущение", "низкая"))
+
     e.explain = (
         f"Адресуемый металл: {e.addressable_ni_t:,.0f} т Ni + {e.addressable_cu_t:,.0f} т Cu "
-        f"({e.basis}). Достижимая доля извлечения вмешательством: "
-        f"{e.capture_low:.0%}…{e.capture_exp:.0%}…{e.capture_high:.0%}. "
-        f"Ожидаемый возврат: {e.ni_exp:,.0f} т Ni + {e.cu_exp:,.0f} т Cu ≈ "
-        f"{e.musd_exp:.1f} млн $/год (диапазон {e.musd_low:.1f}…{e.musd_high:.1f})."
+        f"({e.basis}). Достижимая доля извлечения: "
+        f"{e.capture_low:.0%}…{e.capture_exp:.0%}…{e.capture_high:.0%} "
+        f"(основание: {e.coef_basis}; уверенность {e.confidence} — уточняется лабораторным "
+        f"опробованием). Ожидаемый возврат: {e.ni_exp:,.0f} т Ni + {e.cu_exp:,.0f} т Cu ≈ "
+        f"{e.musd_exp:.1f} млн долл./год (диапазон {e.musd_low:.1f}…{e.musd_high:.1f})."
     )
     return e
 

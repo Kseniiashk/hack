@@ -86,6 +86,7 @@ class ValidationResult:
     k: int = 0
     matches: list = field(default_factory=list)   # [{gold, our, rank}]
     missed: list = field(default_factory=list)    # непокрытые эталонные
+    extra: list = field(default_factory=list)     # наши гипотезы сверх эталона
 
     def to_dict(self):
         return asdict(self)
@@ -106,7 +107,10 @@ def validate_plant(plant: str, our_titles: list, k: int = 10) -> ValidationResul
     covered = set()
     used_ours = set()
     for gi, g in enumerate(gold):
+        # ищем первую нашу гипотезу, ещё не занятую другим эталоном
         for oi, o in enumerate(topk):
+            if oi in used_ours:
+                continue
             if is_match(o, g):
                 covered.add(gi)
                 used_ours.add(oi)
@@ -116,6 +120,8 @@ def validate_plant(plant: str, our_titles: list, k: int = 10) -> ValidationResul
     res.recall = round(len(covered) / max(len(gold), 1), 3)
     res.precision_topk = round(len(used_ours) / max(len(topk), 1), 3)
     res.missed = [g for gi, g in enumerate(gold) if gi not in covered]
+    # гипотезы из нашего топ-k, не совпавшие ни с одной экспертной — предложены сверх
+    res.extra = [o for oi, o in enumerate(topk) if oi not in used_ours]
     return res
 
 
