@@ -72,6 +72,8 @@ if mode == "Пример":
         st.sidebar.error("Файл не найден.")
 else:
     up = st.sidebar.file_uploader("Отчёт о хвостах (.xlsx)", type=["xlsx"])
+    st.sidebar.caption("Нет своего файла? Готовые примеры — в режиме «Пример» слева "
+                       "или в репозитории, папка data/examples/.")
     plant = st.sidebar.text_input("Название фабрики", "Фабрика")
     if up:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as f:
