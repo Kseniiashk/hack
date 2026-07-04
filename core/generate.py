@@ -152,14 +152,27 @@ def generate(diag: Diagnosis, weights: dict = None, prices: dict = None,
             best[h.id] = h
     hyps = list(best.values())
 
-    # Нормировка value.
+    # Нормируем каждый критерий по всему набору (min-max в 0..1), чтобы у всех осей
+    # был одинаковый размах — тогда веса реально влияют на порядок.
+    def minmax(values):
+        lo, hi = min(values), max(values)
+        rng = hi - lo
+        return [(v - lo) / rng if rng else 0.5 for v in values]
+
     vmax = max((h.value_musd for h in hyps), default=1.0) or 1.0
-    for h in hyps:
+    nv = minmax([h.value_musd for h in hyps])
+    nf = minmax([h.feasibility for h in hyps])
+    nn = minmax([h.novelty for h in hyps])
+    nr = minmax([h.risk for h in hyps])
+
+    # Веса как доли (сумма = 1), чтобы движение одного слайдера перераспределяло вклад.
+    wsum = sum(abs(weights[k]) for k in ("value", "feasibility", "novelty", "risk")) or 1.0
+    wv, wf, wn, wr = (weights["value"] / wsum, weights["feasibility"] / wsum,
+                      weights["novelty"] / wsum, weights["risk"] / wsum)
+
+    for i, h in enumerate(hyps):
         h.value_norm = h.value_musd / vmax
-        h.score = (weights["value"] * h.value_norm
-                   + weights["feasibility"] * h.feasibility
-                   + weights["novelty"] * h.novelty
-                   - weights["risk"] * h.risk)
+        h.score = round(wv * nv[i] + wf * nf[i] + wn * nn[i] - wr * nr[i], 4)
 
     # RAG-обоснование (цитаты из учебников).
     if rag is not None:
