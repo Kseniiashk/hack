@@ -192,15 +192,15 @@ def validation_summary(overall):
 def validation_plant(r):
     rows = ""
     for m in r.matches:
-        rows += (f"<div style='padding:5px 0;font-size:13px;color:{TEXT};"
-                 f"border-top:1px solid {BORDER}'>"
+        rows += (f"<div style='display:flex;gap:12px;padding:6px 0;font-size:13px;"
+                 f"color:{TEXT};border-top:1px solid {BORDER}'>"
                  f"<span style='font-family:var(--mono);color:{ACCENT};"
-                 f"margin-right:10px'>#{m['rank']}</span>{e(m['gold'])}</div>")
+                 f"min-width:32px'>#{m['rank']}</span><span>{e(m['gold'])}</span></div>")
     for g in r.missed:
-        rows += (f"<div style='padding:5px 0;font-size:13px;color:{FAINT};"
-                 f"border-top:1px solid {BORDER}'>"
-                 f"<span style='font-family:var(--mono);margin-right:10px'>—</span>"
-                 f"{e(g)}</div>")
+        rows += (f"<div style='display:flex;gap:12px;padding:6px 0;font-size:13px;"
+                 f"color:{FAINT};border-top:1px solid {BORDER}'>"
+                 f"<span style='font-family:var(--mono);min-width:32px'>—</span>"
+                 f"<span>{e(g)}</span></div>")
     return (f"<div style='margin-bottom:18px'>"
             f"<div style='display:flex;justify-content:space-between;"
             f"font-size:15px;color:{TEXT};margin-bottom:4px'>"
