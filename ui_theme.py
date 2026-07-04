@@ -276,3 +276,10 @@ def priority_matrix(hyps, top=12):
                      zeroline=False)
     fig.update_yaxes(title="Эффект, млн долл./год →", gridcolor=BORDER, zeroline=False)
     return fig
+
+
+def extra_row(title):
+    return (f"<div style='display:flex;gap:12px;padding:6px 0;font-size:13px;"
+            f"color:{TEXT};border-bottom:1px solid {BORDER}'>"
+            f"<span style='color:{ACCENT};font-family:var(--mono)'>+</span>"
+            f"<span>{e(title)}</span></div>")

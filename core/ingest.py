@@ -309,7 +309,7 @@ def read_docx(path: str) -> str:
 
 if __name__ == "__main__":
     import sys
-    base = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
+    base = os.environ.get('CASE_DIR', 'data/examples')
     files = [
         ("Пример 1/Хвосты КГМК.xlsx", "КГМК"),
         ("Пример 2/Хвосты НОФ Вкр.xlsx", "НОФ-вкр"),

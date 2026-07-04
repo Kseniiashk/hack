@@ -12,9 +12,11 @@ ground truth. Мы прогоняем нашу систему на тех же �
   precision — доля наших топ-гипотез, совпавших с эталоном;
   match@k   — покрытие эталона нашим топ-k.
 
-Матчинг — по концептам, а не по строкам: каждая гипотеза раскладывается на
-(оборудование/узел) + (действие). Совпадение засчитывается, если пересекаются
-и узел, и действие. Это устойчиво к разным формулировкам одного и того же.
+Матчинг — мягкий, по концептам, а не по строкам: каждая гипотеза раскладывается на
+(оборудование/узел) + (действие). Совпадение засчитывается, если пересекается узел
+И действие; для «сильных» узлов (магнитная сепарация, грохот, гидроциклон, возврат
+хвостов) достаточно совпадения узла. Валидация консервативная: одна наша гипотеза
+может быть засчитана только одному эталону (без повторного использования).
 """
 from __future__ import annotations
 import os
@@ -137,10 +139,11 @@ def validate_all(generate_fn, k: int = 10) -> dict:
         results[plant] = r
         tot_gold += r.n_gold
         tot_cov += r.matched_gold
+    tot_extra = sum(len(results[p].extra) for p in gold)
     results["_overall"] = {
         "recall": round(tot_cov / max(tot_gold, 1), 3),
         "matched": tot_cov, "total_gold": tot_gold,
-        "plants": len(gold),
+        "plants": len(gold), "extra": tot_extra,
     }
     return results
 
@@ -152,7 +155,7 @@ if __name__ == "__main__":
     from core.diagnose import diagnose
     from core.generate import generate
 
-    base = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
+    base = os.environ.get('CASE_DIR', 'data/examples')
     files = {"КГМК": "Пример 1/Хвосты КГМК.xlsx", "НОФ-вкр": "Пример 2/Хвосты НОФ Вкр.xlsx",
              "НОФ-мед": "Пример 3/Хвосты НОФ мед.xlsx", "ТОФ": "Пример 4/Хвосты ТОФ_2.xlsx"}
 

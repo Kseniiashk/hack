@@ -17,23 +17,18 @@ from core import feedback
 
 ROOT = next((p for p in sys.path if os.path.isdir(os.path.join(p, "core"))), ".")
 EXAMPLES_DIR = os.path.join(ROOT, "data", "examples")
-CASE_DIR = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
 HAS_YANDEX = bool(os.environ.get("YANDEX_API_KEY") and os.environ.get("YANDEX_FOLDER_ID"))
 
 EXAMPLES = {
-    "КГМК": ("КГМК.xlsx", "Пример 1/Хвосты КГМК.xlsx"),
-    "НОФ вкрапленные": ("НОФ-вкр.xlsx", "Пример 2/Хвосты НОФ Вкр.xlsx"),
-    "НОФ медистые": ("НОФ-мед.xlsx", "Пример 3/Хвосты НОФ мед.xlsx"),
-    "ТОФ": ("ТОФ.xlsx", "Пример 4/Хвосты ТОФ_2.xlsx"),
+    "КГМК": "КГМК.xlsx",
+    "НОФ вкрапленные": "НОФ-вкр.xlsx",
+    "НОФ медистые": "НОФ-мед.xlsx",
+    "ТОФ": "ТОФ.xlsx",
 }
 
 
 def example_path(name):
-    bundled, case_rel = EXAMPLES[name]
-    p = os.path.join(EXAMPLES_DIR, bundled)
-    if os.path.exists(p):
-        return p
-    p = os.path.join(CASE_DIR, case_rel)
+    p = os.path.join(EXAMPLES_DIR, EXAMPLES[name])
     return p if os.path.exists(p) else None
 
 

@@ -306,7 +306,7 @@ def check_data_sanity(rep: TailingsReport) -> list:
 
 if __name__ == "__main__":
     from core.ingest import parse_tailings_xlsx
-    base = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
+    base = os.environ.get('CASE_DIR', 'data/examples')
     for fn, plant in [("Пример 1/Хвосты КГМК.xlsx", "КГМК"),
                       ("Пример 4/Хвосты ТОФ_2.xlsx", "ТОФ")]:
         rep = parse_tailings_xlsx(f"{base}/{fn}", plant)

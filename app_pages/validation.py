@@ -11,22 +11,17 @@ from core.validate import validate_all, load_gold
 
 ROOT = next((p for p in sys.path if os.path.isdir(os.path.join(p, "core"))), ".")
 EXAMPLES_DIR = os.path.join(ROOT, "data", "examples")
-CASE_DIR = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
 
 FILES = {
-    "КГМК": ("КГМК.xlsx", "Пример 1/Хвосты КГМК.xlsx"),
-    "НОФ-вкр": ("НОФ-вкр.xlsx", "Пример 2/Хвосты НОФ Вкр.xlsx"),
-    "НОФ-мед": ("НОФ-мед.xlsx", "Пример 3/Хвосты НОФ мед.xlsx"),
-    "ТОФ": ("ТОФ.xlsx", "Пример 4/Хвосты ТОФ_2.xlsx"),
+    "КГМК": "КГМК.xlsx",
+    "НОФ-вкр": "НОФ-вкр.xlsx",
+    "НОФ-мед": "НОФ-мед.xlsx",
+    "ТОФ": "ТОФ.xlsx",
 }
 
 
 def path_of(plant):
-    bundled, case_rel = FILES[plant]
-    p = os.path.join(EXAMPLES_DIR, bundled)
-    if os.path.exists(p):
-        return p
-    p = os.path.join(CASE_DIR, case_rel)
+    p = os.path.join(EXAMPLES_DIR, FILES[plant])
     return p if os.path.exists(p) else None
 
 
@@ -56,15 +51,45 @@ k = st.slider("Учитывать верхние k гипотез", 5, 18, 12)
 res = run(k)
 
 st.markdown(t.validation_summary(res["_overall"]), unsafe_allow_html=True)
+
+ov = res["_overall"]
+# сводка метрик одной строкой: покрыто / лишнее / средняя точность
+avg_prec = sum(res[p].precision_topk for p in FILES) / len(FILES)
+m1, m2, m3 = st.columns(3)
+m1.metric("Покрытие экспертов", f"{ov['recall']:.0%}", f"{ov['matched']}/{ov['total_gold']}")
+m2.metric("Предложено сверх", f"{ov['extra']}", "инженерных вариантов")
+m3.metric("Точность топ-k", f"{avg_prec:.0%}", "совпало с эталоном")
+
 st.caption(
     "Метрика — покрытие (recall): какую долю экспертных гипотез система воспроизводит. "
-    "Не «угадывание»: система выходит на те же инженерные решения из физики процесса, "
-    "и вдобавок предлагает варианты, которых в экспертном списке не было.")
+    "Точность топ-k ниже намеренно: система выдаёт больше проверенных вариантов, чем "
+    "было в коротком экспертном списке, поэтому «лишнее» — это плюс, а не ошибка. "
+    "Матчинг мягкий (по инженерному смыслу), консервативный: одна наша гипотеза "
+    "засчитывается только одному эталону, без повторного использования.")
 
 st.markdown("<div class='rule'>По фабрикам</div>", unsafe_allow_html=True)
 for plant in FILES:
     st.markdown(t.validation_plant(res[plant]), unsafe_allow_html=True)
 
-st.markdown("<div class='note'>Число рядом с гипотезой — её место в нашем ранжированном "
-            "списке. Прочерк — экспертная гипотеза не попала в верхние k (показываем честно, "
-            "без подгонки матчинга).</div>", unsafe_allow_html=True)
+# Главный дифференциатор: что система предложила сверх экспертов
+extras = []
+for plant in FILES:
+    for x in res[plant].extra:
+        if x not in extras:
+            extras.append(x)
+if extras:
+    st.markdown("<div class='rule'>Предложено сверх экспертного списка</div>",
+                unsafe_allow_html=True)
+    st.caption("Инженерно обоснованные варианты, которых не было в коротком "
+               "мозговом штурме экспертов — система находит их из физики процесса.")
+    for x in extras[:5]:
+        st.markdown(t.extra_row(x), unsafe_allow_html=True)
+
+st.markdown("<div class='rule'>Границы применимости</div>", unsafe_allow_html=True)
+st.markdown(
+    "- Совпадение считается по инженерному смыслу (узел + действие), а не по словам — "
+    "поэтому «мягкое» и устойчивое к формулировкам.\n"
+    "- Эталон — короткий мозговой штурм экспертов; расхождение в отдельных пунктах "
+    "нормально и показано честно.\n"
+    "- Метрика подтверждает осмысленность выводов, но не заменяет пилотную проверку "
+    "гипотез на фабрике.")

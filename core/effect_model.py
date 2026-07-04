@@ -155,7 +155,7 @@ if __name__ == "__main__":
     from core.ingest import parse_tailings_xlsx
     from core.diagnose import diagnose, DEFAULT_PRICES
     from core.generate import generate
-    base = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
+    base = os.environ.get('CASE_DIR', 'data/examples')
     rep = parse_tailings_xlsx(f"{base}/Пример 1/Хвосты КГМК.xlsx", "КГМК")
     diag = diagnose(rep)
     hyps = generate(diag)

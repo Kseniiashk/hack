@@ -7,7 +7,7 @@ import os
 import json
 import re
 
-BASE = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1/Дополнительные материалы"
+BASE = os.environ.get('CASE_DIR', '.') + '/Дополнительные материалы'
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "parsed", "corpus.jsonl")
 
 # Короткие человекочитаемые имена источников.
