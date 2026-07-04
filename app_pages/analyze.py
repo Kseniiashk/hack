@@ -97,7 +97,7 @@ prices = {
     "Cu": float(st.sidebar.number_input("Цена Cu, $/т", 1000, 50000, 8500, 500)),
 }
 use_rag = st.sidebar.checkbox("Ссылки на литературу", value=True)
-use_llm = st.sidebar.checkbox("Текстовое обоснование (LLM)", value=False,
+use_llm = st.sidebar.checkbox("Текстовое обоснование (LLM)", value=HAS_YANDEX,
                               disabled=not HAS_YANDEX)
 use_feedback = st.sidebar.checkbox("Учитывать оценки экспертов", value=True)
 
