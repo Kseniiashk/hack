@@ -291,11 +291,13 @@ def pilot_card(c):
                 f"border-bottom:1px solid {BORDER}'>"
                 f"<span style='color:{FAINT};min-width:130px'>{e(k)}</span>"
                 f"<span style='color:{TEXT}'>{e(v)}</span></div>")
-    out = (row("Что делаем", c["what"]) + row("Ожидаемый эффект", c["effect"])
-           + row("Дизайн", c["design"]) + row("Длительность", c["duration"])
-           + row("Критерий успеха", c["success"])
-           + row("GO — масштабируем", c["go"]) + row("STOP — сворачиваем", c["stop"])
-           + row("Мерить ежедневно", c["daily"]) + row("Риски", c["risk"]))
+    out = row("Что делаем", c["what"]) + row("Ожидаемый эффект", c["effect"])
+    if c.get("capex"):
+        out += row("Капзатраты", c["capex"])
+    out += (row("Дизайн", c["design"]) + row("Длительность", c["duration"])
+            + row("Критерий успеха", c["success"])
+            + row("GO — масштабируем", c["go"]) + row("STOP — сворачиваем", c["stop"])
+            + row("Мерить ежедневно", c["daily"]) + row("Риски", c["risk"]))
     if c["equipment"]:
         out += row("Оборудование", ", ".join(c["equipment"]))
     return f"<div>{out}</div>"

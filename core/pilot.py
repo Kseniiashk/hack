@@ -42,11 +42,25 @@ def pilot_card(h) -> dict:
     stop = ("целевой KPI не сдвинулся за контрольный период или выросли потери в "
             "других классах крупности")
 
+    # CAPEX и простой срок окупаемости.
+    try:
+        from core.capex import payback as _payback
+        pb = _payback(h.id, h.value_musd)
+        if pb["payback_years"] is not None:
+            yrs = pb["payback_years"]
+            pb_str = (f"{yrs*12:.0f} мес." if yrs < 1 else f"{yrs:.1f} года")
+            capex_str = f"CAPEX ~{pb['capex_musd']:.1f} млн долл. ({pb['tier']}), окупаемость {pb_str}"
+        else:
+            capex_str = f"CAPEX ~{pb['capex_musd']:.1f} млн долл. ({pb['tier']})"
+    except Exception:
+        capex_str = ""
+
     return {
         "what": h.title,
         "why": h.mechanism,
         "effect": (f"{getattr(h,'value_low',0):.1f} … {h.value_musd:.1f} … "
                    f"{getattr(h,'value_high',0):.1f} млн долл./год"),
+        "capex": capex_str,
         "risk": (f"технический {getattr(h,'risk_tech',0):.2f} / "
                  f"экономический {getattr(h,'risk_econ',0):.2f}"),
         "design": "A/B: контрольная секция (без изменений) против опытной (с вмешательством), "

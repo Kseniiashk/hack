@@ -241,6 +241,25 @@ with tab_eco:
         "Эффект портфеля не суммируется вслепую: если несколько мер бьют в один и тот же "
         "класс потерь, система берёт лучший вклад, а не складывает их — чтобы не завышать оценку.")
 
+    st.markdown("<div class='rule'>Капзатраты и окупаемость (топ-5)</div>",
+                unsafe_allow_html=True)
+    from core.capex import payback as _pb
+    pb_rows = []
+    for i, h in enumerate(hyps[:5], 1):
+        pb = _pb(h.id, h.value_musd)
+        yrs = pb["payback_years"]
+        pb_rows.append({
+            "№": i, "Гипотеза": h.title,
+            "Эффект, M$/год": round(h.value_musd, 1),
+            "CAPEX, M$": pb["capex_musd"],
+            "Класс CAPEX": pb["tier"],
+            "Окупаемость": (f"{yrs*12:.0f} мес." if yrs and yrs < 1
+                            else (f"{yrs:.1f} г." if yrs else "—")),
+        })
+    st.dataframe(pd.DataFrame(pb_rows).set_index("№"), use_container_width=True)
+    st.caption("CAPEX — ориентировочный порядок величины по типу вмешательства; "
+               "простой срок окупаемости = CAPEX / годовой эффект. Оценка, не финмодель.")
+
     st.markdown("<div class='rule'>Матрица приоритетов</div>", unsafe_allow_html=True)
     st.caption("Быстрые победы — легко внедрить и высокий эффект; стратегические — "
                "высокий эффект, но капитальные затраты. Размер точки — новизна. "

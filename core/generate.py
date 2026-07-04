@@ -170,9 +170,17 @@ def generate(diag: Diagnosis, weights: dict = None, prices: dict = None,
     wv, wf, wn, wr = (weights["value"] / wsum, weights["feasibility"] / wsum,
                       weights["novelty"] / wsum, weights["risk"] / wsum)
 
+    # Штраф за капиталоёмкость: капиталоёмкие меры чуть ниже в приоритете быстрого
+    # внедрения (взвешивается реализуемостью — чем важнее реализуемость, тем сильнее).
+    try:
+        from core.capex import feasibility_penalty
+    except Exception:
+        feasibility_penalty = None
+
     for i, h in enumerate(hyps):
         h.value_norm = h.value_musd / vmax
-        h.score = round(wv * nv[i] + wf * nf[i] + wn * nn[i] - wr * nr[i], 4)
+        pen = (feasibility_penalty(h.id) * wf) if feasibility_penalty else 0.0
+        h.score = round(wv * nv[i] + wf * nf[i] + wn * nn[i] - wr * nr[i] - pen, 4)
 
     # RAG-обоснование (цитаты из учебников).
     if rag is not None:
