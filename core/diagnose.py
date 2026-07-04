@@ -195,6 +195,115 @@ def diagnose(rep: TailingsReport, prices: dict = None) -> Diagnosis:
     return d
 
 
+def rejected_directions(rep: TailingsReport, diag: Diagnosis) -> list:
+    """Анти-гипотезы: какие стандартные меры система НЕ предлагает и почему —
+    на основе реальной минералогии. Показывает понимание физики, а не мэтчинг слов.
+    Возвращает [{"title": ..., "reason": ...}]."""
+    out = []
+
+    # Соотношение потерь: сростки (крупные классы) vs шламы (раскрытый -10).
+    locked_total = sum(c.min28.locked_t() + c.min29.locked_t()
+                       for c in rep.classes if c.size != "-10")
+    slime = _class_by_size(rep, "-10")
+    slime_lib = (slime.min28.liberated_t() + slime.min29.liberated_t()) if slime else 0.0
+    total = locked_total + slime_lib or 1.0
+    slime_share = slime_lib / total
+    locked_share = locked_total / total
+
+    # Если потери в основном в сростках — химия/реагенты не помогут.
+    if locked_share >= 0.55:
+        out.append({
+            "title": "Изменение реагентного режима (собиратели, вспениватели)",
+            "reason": f"Отклонено: {locked_share:.0%} извлекаемых потерь — это металл, "
+                      f"запертый в сростках (закрытый Pnt/Cp). Химия флотации не поможет, "
+                      f"пока зёрна не вскрыты физически (доизмельчение/классификация)."})
+
+    # Если шламов мало — флотация шламов не приоритет.
+    if slime_share < 0.25:
+        out.append({
+            "title": "Флотация шламов / удлинение флотационного фронта",
+            "reason": f"Отклонено: раскрытый металл в классе −10 мкм — лишь "
+                      f"{slime_share:.0%} потерь. Проблема локализована в крупных классах, "
+                      f"а не в шламах."})
+
+    # Если шламов много — доизмельчение вредно (усилит переизмельчение).
+    if slime_share >= 0.45:
+        out.append({
+            "title": "Общее увеличение тонины помола (доизмельчение всего потока)",
+            "reason": f"Отклонено: {slime_share:.0%} потерь — уже раскрытый металл в "
+                      f"тонком классе −10 мкм. Дополнительное измельчение усилит "
+                      f"шламообразование и потери, а не снизит их."})
+
+    # Крупный класс +125 без металла — грубое дробление не трогаем.
+    c125 = _class_by_size(rep, "+125")
+    if c125 and (c125.el28_t + c125.el29_t) < 1.0:
+        out.append({
+            "title": "Модернизация крупного дробления (класс +125 мкм)",
+            "reason": "Отклонено: в классе +125 мкм металла практически нет — "
+                      "вмешательство в грубое дробление не даст эффекта по извлечению."})
+
+    return out[:3]
+
+
+def check_data_sanity(rep: TailingsReport) -> list:
+    """Аудит качества входных данных перед диагнозом. Возвращает список проверок
+    [{"status": "ok"|"warn", "msg": ...}] — чтобы показать, что решение готово к
+    реальным «грязным» данным с производства."""
+    out = []
+
+    # 1. Баланс масс по классам крупности: сумма долей ≈ 100%.
+    if rep.classes:
+        share_sum = sum(c.mass_share_pct for c in rep.classes)
+        if 97.0 <= share_sum <= 103.0:
+            out.append({"status": "ok",
+                        "msg": f"Баланс по классам крупности сходится: сумма долей "
+                               f"{share_sum:.1f}%."})
+        else:
+            out.append({"status": "warn",
+                        "msg": f"Сумма долей классов {share_sum:.1f}% (ожидается ~100%) — "
+                               f"проверьте гранулометрию."})
+
+    # 2. Аномальный скачок массы в отдельном классе (возможен прорыв сетки грохота).
+    if len(rep.classes) >= 3:
+        shares = [c.mass_share_pct for c in rep.classes]
+        mx = max(shares)
+        mean_rest = (sum(shares) - mx) / (len(shares) - 1)
+        big = next(c for c in rep.classes if c.mass_share_pct == mx)
+        if mean_rest > 0 and mx > 3.0 * mean_rest and mx > 35.0:
+            out.append({"status": "warn",
+                        "msg": f"Резкий скачок массы в классе {big.size} мкм "
+                               f"({mx:.0f}%) — возможен прорыв сетки грохота или "
+                               f"ошибка ситового анализа."})
+        else:
+            out.append({"status": "ok",
+                        "msg": "Распределение массы по классам без резких аномалий."})
+
+    # 3. Доля извлекаемого металла в разумных пределах.
+    rec = sum(c.min28.recoverable_t + c.min29.recoverable_t for c in rep.classes)
+    tot = rep.tail_el28_t + rep.tail_el29_t
+    if tot > 0:
+        frac = rec / tot
+        if 0.2 <= frac <= 0.95:
+            out.append({"status": "ok",
+                        "msg": f"Доля извлекаемого металла {frac:.0%} — в норме "
+                               f"(остальное в силикатах/валлериите)."})
+        elif frac > 0.95:
+            out.append({"status": "warn",
+                        "msg": f"Доля извлекаемого металла {frac:.0%} подозрительно высока — "
+                               f"проверьте минералогический анализ."})
+        else:
+            out.append({"status": "warn",
+                        "msg": f"Доля извлекаемого металла всего {frac:.0%} — потери в "
+                               f"основном в неизвлекаемых формах."})
+
+    # 4. Наличие содержания металла в хвостах.
+    if rep.tail_mass_t > 0 and (rep.tail_el28_pct > 0 or rep.tail_el29_pct > 0):
+        out.append({"status": "ok",
+                    "msg": f"Масса хвостов и содержание металла считаны "
+                           f"({rep.tail_mass_t:,.0f} т)."})
+    return out
+
+
 if __name__ == "__main__":
     from core.ingest import parse_tailings_xlsx
     base = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"

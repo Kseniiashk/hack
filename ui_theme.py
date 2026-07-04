@@ -218,3 +218,61 @@ def validation_plant(r):
             f"<span style='font-family:var(--mono);color:{GOOD if r.recall>=0.85 else WARN}'>"
             f"покрытие {r.recall:.0%} ({r.matched_gold}/{r.n_gold})</span></div>"
             f"{rows}{extra_line}</div>")
+
+
+def check_row(status, msg):
+    color = GOOD if status == "ok" else WARN
+    dot = "●"
+    return (f"<div style='display:flex;gap:10px;padding:4px 0;font-size:13px;"
+            f"color:{TEXT}'><span style='color:{color}'>{dot}</span>"
+            f"<span>{e(msg)}</span></div>")
+
+
+def rejected(r):
+    return (f"<div style='padding:10px 0;border-bottom:1px solid {BORDER}'>"
+            f"<div style='color:{TEXT};font-size:14px'>{e(r['title'])}</div>"
+            f"<div style='color:{MUTED};font-size:13px;margin-top:4px;line-height:1.5'>"
+            f"{e(r['reason'])}</div></div>")
+
+
+def priority_matrix(hyps, top=12):
+    """Матрица приоритетов: реализуемость (X) × эффект (Y), 4 квадранта.
+    Quick Wins = легко+эффективно, Стратегические = сложно+эффективно."""
+    import plotly.graph_objects as go
+    hs = hyps[:top]
+    xs = [h.feasibility for h in hs]
+    ys = [h.value_musd for h in hs]
+    labels = [f"{i+1}" for i in range(len(hs))]
+    names = [h.title for h in hs]
+    ymid = (max(ys) + min(ys)) / 2 if ys else 1
+    xmid = 0.5
+
+    fig = go.Figure()
+    fig.add_shape(type="line", x0=xmid, x1=xmid, y0=0, y1=max(ys) * 1.1 if ys else 1,
+                  line=dict(color=BORDER, dash="dash"))
+    fig.add_shape(type="line", x0=0, x1=1, y0=ymid, y1=ymid,
+                  line=dict(color=BORDER, dash="dash"))
+    fig.add_trace(go.Scatter(
+        x=xs, y=ys, mode="markers+text", text=labels, textposition="top center",
+        textfont=dict(color=TEXT, size=11),
+        marker=dict(size=[10 + 16 * h.novelty for h in hs], color=ACCENT,
+                    line=dict(color=BG, width=1), opacity=0.85),
+        customdata=names,
+        hovertemplate="%{customdata}<br>эффект %{y:.1f} млн долл./год<br>"
+                      "реализуемость %{x:.2f}<extra></extra>"))
+    # подписи квадрантов
+    ann = [(0.78, max(ys) * 1.02 if ys else 1, "Быстрые победы"),
+           (0.22, max(ys) * 1.02 if ys else 1, "Стратегические"),
+           (0.78, min(ys) if ys else 0, "Мелкие улучшения"),
+           (0.22, min(ys) if ys else 0, "Низкий приоритет")]
+    for ax, ay, txt in ann:
+        fig.add_annotation(x=ax, y=ay, text=txt, showarrow=False,
+                           font=dict(color=FAINT, size=11))
+    fig.update_layout(
+        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor=SURFACE, height=420, margin=dict(l=10, r=10, t=10, b=10),
+        font=dict(color=MUTED, size=12), showlegend=False)
+    fig.update_xaxes(title="Реализуемость →", gridcolor=BORDER, range=[0, 1],
+                     zeroline=False)
+    fig.update_yaxes(title="Эффект, млн долл./год →", gridcolor=BORDER, zeroline=False)
+    return fig

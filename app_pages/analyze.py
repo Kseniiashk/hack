@@ -8,7 +8,7 @@ import pandas as pd
 
 import ui_theme as t
 from core.ingest import parse_tailings_xlsx
-from core.diagnose import diagnose
+from core.diagnose import diagnose, check_data_sanity, rejected_directions
 from core.generate import generate, DEFAULT_WEIGHTS
 from core.report import build_docx, hypotheses_to_csv, hypotheses_to_json
 from core.economics import compute_kpi
@@ -135,6 +135,11 @@ tab_diag, tab_hyp, tab_graph, tab_eco, tab_export = st.tabs(
     ["Диагностика", "Гипотезы", "Граф", "Экономика", "Экспорт"])
 
 with tab_diag:
+    st.markdown("<div class='rule'>Проверка исходных данных</div>", unsafe_allow_html=True)
+    for chk in check_data_sanity(report):
+        icon = "🟢" if chk["status"] == "ok" else "🟡"
+        st.markdown(t.check_row(chk["status"], chk["msg"]), unsafe_allow_html=True)
+
     st.markdown("<div class='rule'>Распределение по классам крупности</div>",
                 unsafe_allow_html=True)
     st.dataframe(pd.DataFrame([{
@@ -167,6 +172,12 @@ with tab_diag:
     ordered += [f for f in diag.findings if f.code == "RECOVERABLE_CEILING"]
     for f in ordered:
         st.markdown(t.finding(f), unsafe_allow_html=True)
+
+    rejected = rejected_directions(report, diag)
+    if rejected:
+        with st.expander("Почему НЕ предлагаем некоторые стандартные меры"):
+            for r in rejected:
+                st.markdown(t.rejected(r), unsafe_allow_html=True)
 
 with tab_hyp:
     st.markdown(f"<div class='rule'>Гипотезы — {len(hyps)}</div>",
@@ -220,6 +231,15 @@ with tab_eco:
     st.caption(
         "Эффект портфеля не суммируется вслепую: если несколько мер бьют в один и тот же "
         "класс потерь, система берёт лучший вклад, а не складывает их — чтобы не завышать оценку.")
+
+    st.markdown("<div class='rule'>Матрица приоритетов</div>", unsafe_allow_html=True)
+    st.caption("Быстрые победы — легко внедрить и высокий эффект; стратегические — "
+               "высокий эффект, но капитальные затраты. Размер точки — новизна. "
+               "Номер точки = ранг гипотезы.")
+    try:
+        st.plotly_chart(t.priority_matrix(hyps), use_container_width=True)
+    except Exception:
+        st.info("Матрица недоступна (нужен plotly).")
     labels = {"UNDERGRIND": "Недоизмельчение", "SLIMES": "Потеря шламов",
               "MIDGRIND": "Средний класс"}
     c1, c2 = st.columns(2)
