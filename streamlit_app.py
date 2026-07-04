@@ -36,15 +36,13 @@ try:
 except Exception:
     pass
 
-import ui_theme as ui
-st.markdown(ui.inject_css(), unsafe_allow_html=True)
+import ui_theme
+st.markdown(ui_theme.css(), unsafe_allow_html=True)
 
-# --- Навигация по страницам --------------------------------------------------
 pages = [
-    st.Page("app_pages/home.py", title="Главная", icon=":material/home:", default=True),
-    st.Page("app_pages/analyze.py", title="Анализ", icon=":material/insights:"),
-    st.Page("app_pages/validation.py", title="Валидация", icon=":material/verified:"),
-    st.Page("app_pages/about.py", title="О проекте", icon=":material/description:"),
+    st.Page("app_pages/home.py", title="Главная", default=True),
+    st.Page("app_pages/analyze.py", title="Анализ"),
+    st.Page("app_pages/validation.py", title="Валидация"),
+    st.Page("app_pages/about.py", title="О проекте"),
 ]
-nav = st.navigation(pages, position="sidebar")
-nav.run()
+st.navigation(pages, position="sidebar").run()

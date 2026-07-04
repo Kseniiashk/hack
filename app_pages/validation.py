@@ -1,16 +1,17 @@
-"""Валидация — объективная метрика точности против эталона экспертов."""
 import os
+import sys
+
 import streamlit as st
 
-import ui_theme as ui
+import ui_theme as t
 from core.ingest import parse_tailings_xlsx
 from core.diagnose import diagnose
 from core.generate import generate
 from core.validate import validate_all, load_gold
 
-_ROOT = next((p for p in __import__("sys").path if os.path.isdir(os.path.join(p, "core"))), ".")
-BUNDLED = os.path.join(_ROOT, "data", "examples")
-CASE_BASE = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
+ROOT = next((p for p in sys.path if os.path.isdir(os.path.join(p, "core"))), ".")
+EXAMPLES_DIR = os.path.join(ROOT, "data", "examples")
+CASE_DIR = "/Users/kseniashk/fabric/Задача 1. Фабрика гипотез/Задача 1"
 
 FILES = {
     "КГМК": ("КГМК.xlsx", "Пример 1/Хвосты КГМК.xlsx"),
@@ -20,58 +21,44 @@ FILES = {
 }
 
 
-def _path(plant):
-    b, rel = FILES[plant]
-    p = os.path.join(BUNDLED, b)
+def path_of(plant):
+    bundled, case_rel = FILES[plant]
+    p = os.path.join(EXAMPLES_DIR, bundled)
     if os.path.exists(p):
         return p
-    p2 = os.path.join(CASE_BASE, rel)
-    return p2 if os.path.exists(p2) else None
+    p = os.path.join(CASE_DIR, case_rel)
+    return p if os.path.exists(p) else None
 
 
-st.markdown(ui.VALIDATION_CSS.join(["<style>", "</style>"]), unsafe_allow_html=True)
-
-st.markdown(
-    "<div class='hero'><div class='eyebrow'>Объективная проверка качества</div>"
-    "<h1>Система работает на экспертном уровне</h1>"
-    "<div class='sub'>Организаторы дали не только данные хвостов, но и <b class='ni'>эталонные "
-    "гипотезы</b> — результат мозгового штурма экспертов Компании. Мы прогоняем систему на тех "
-    "же фабриках и измеряем, насколько её выводы совпадают с экспертными. Это не самоцель, а "
-    "доказательство релевантности: <b class='cu'>система выходит на уровень экспертов автоматически "
-    "и за секунды</b> — а затем ранжирует, обосновывает и оценивает эффект в деньгах, чего "
-    "мозговой штурм не даёт. Матчинг по инженерным концептам (узел + действие), а не по словам.</div></div>",
-    unsafe_allow_html=True)
-
-
-@st.cache_data(show_spinner="Прогон валидации на 4 фабриках…")
-def run_validation(k: int):
-    def gen(plant):
-        rep = parse_tailings_xlsx(_path(plant), plant)
+@st.cache_data(show_spinner="Прогон по фабрикам…")
+def run(k):
+    def titles(plant):
+        rep = parse_tailings_xlsx(path_of(plant), plant)
         return [h.title for h in generate(diagnose(rep))]
-    res = validate_all(gen, k=k)
-    # dataclass'ы → dict для кэша
-    out = {"_overall": res["_overall"]}
-    for p in FILES:
-        out[p] = res[p]
-    return out
+    res = validate_all(titles, k=k)
+    return {p: res[p] for p in FILES} | {"_overall": res["_overall"]}
 
 
-k = st.slider("Учитывать топ-k наших гипотез", 5, 18, 12,
-              help="Сколько верхних гипотез системы сопоставлять с эталоном.")
-res = run_validation(k)
+st.markdown(t.page_header(
+    "Валидация",
+    "К данным о хвостах организаторы приложили гипотезы, которые вручную составили "
+    "эксперты Компании. Система прогоняется на тех же фабриках, и мы сравниваем её "
+    "выводы с экспертными. Совпадение считается по инженерному смыслу (узел и действие), "
+    "а не по совпадению слов."))
 
 if not load_gold():
-    st.warning("Эталонные гипотезы не найдены (data/knowledge/gold_hypotheses.json).")
+    st.warning("Эталонные гипотезы не найдены.")
     st.stop()
 
-st.markdown(ui.validation_hero_html(res["_overall"]), unsafe_allow_html=True)
+k = st.slider("Учитывать верхние k гипотез", 5, 18, 12)
+res = run(k)
 
-st.markdown("<div class='sec-label'>По фабрикам</div>", unsafe_allow_html=True)
+st.markdown(t.validation_summary(res["_overall"]), unsafe_allow_html=True)
+
+st.markdown("<div class='rule'>По фабрикам</div>", unsafe_allow_html=True)
 for plant in FILES:
-    st.markdown(ui.validation_plant_html(res[plant]), unsafe_allow_html=True)
+    st.markdown(t.validation_plant(res[plant]), unsafe_allow_html=True)
 
-st.markdown(
-    "<div style='margin-top:18px;color:#61788b;font-size:13px'>"
-    "✓ — эталонная гипотеза воспроизведена системой (число = её ранг в нашем списке). "
-    "— — не покрыта в топ-k. Метрика честная: подкрутки нет, непокрытые показаны явно."
-    "</div>", unsafe_allow_html=True)
+st.markdown("<div class='note'>Число рядом с гипотезой — её место в нашем списке. "
+            "Прочерк означает, что гипотеза не попала в верхние k. Непокрытые "
+            "показаны как есть, без подгонки.</div>", unsafe_allow_html=True)
