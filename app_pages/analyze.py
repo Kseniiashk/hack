@@ -191,8 +191,12 @@ with tab_hyp:
         "Оценка эксперта корректирует место гипотезы в списке при следующих запусках: "
         "подтверждённые поднимаются (множитель ранга до 1.3×), опровергнутые опускаются "
         "(до 0.7×), отклонённые уходят вниз. Множитель показан в строке гипотезы.")
+    from core.pilot import pilot_card
     for i, h in enumerate(hyps, 1):
         st.markdown(t.hypothesis(i, h), unsafe_allow_html=True)
+        if i <= 5:
+            with st.expander("Протокол пилотной проверки (A/B)"):
+                st.markdown(t.pilot_card(pilot_card(h)), unsafe_allow_html=True)
         b1, b2, b3, _ = st.columns([1, 1, 1, 4])
         if b1.button("Подтвердить", key=f"c{h.id}{i}"):
             feedback.record(h.id, feedback.CONFIRMED, plant=plant)

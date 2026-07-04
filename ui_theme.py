@@ -283,3 +283,19 @@ def extra_row(title):
             f"color:{TEXT};border-bottom:1px solid {BORDER}'>"
             f"<span style='color:{ACCENT};font-family:var(--mono)'>+</span>"
             f"<span>{e(title)}</span></div>")
+
+
+def pilot_card(c):
+    def row(k, v):
+        return (f"<div style='display:flex;gap:12px;padding:5px 0;font-size:13px;"
+                f"border-bottom:1px solid {BORDER}'>"
+                f"<span style='color:{FAINT};min-width:130px'>{e(k)}</span>"
+                f"<span style='color:{TEXT}'>{e(v)}</span></div>")
+    out = (row("Что делаем", c["what"]) + row("Ожидаемый эффект", c["effect"])
+           + row("Дизайн", c["design"]) + row("Длительность", c["duration"])
+           + row("Критерий успеха", c["success"])
+           + row("GO — масштабируем", c["go"]) + row("STOP — сворачиваем", c["stop"])
+           + row("Мерить ежедневно", c["daily"]) + row("Риски", c["risk"]))
+    if c["equipment"]:
+        out += row("Оборудование", ", ".join(c["equipment"]))
+    return f"<div>{out}</div>"

@@ -100,6 +100,16 @@ def build_docx(diag: Diagnosis, hyps: list, out_path: str, top_n: int = None):
                 doc.add_paragraph(f"«{c['snippet']}» — {c['source']}{pg}",
                                   style="List Bullet")
 
+        # Протокол пилота для топ-5 гипотез.
+        if i <= 5:
+            from core.pilot import pilot_card
+            pc = pilot_card(h)
+            doc.add_paragraph("Протокол пилотной проверки (A/B):", style="Intense Quote")
+            for k, v in [("Дизайн", pc["design"]), ("Длительность", pc["duration"]),
+                         ("Критерий успеха", pc["success"]), ("GO", pc["go"]),
+                         ("STOP", pc["stop"]), ("Мерить ежедневно", pc["daily"])]:
+                doc.add_paragraph(f"{k}: {v}", style="List Bullet")
+
     doc.add_paragraph()
     note = doc.add_paragraph()
     note.add_run("Примечание: экономические оценки — ориентировочные (условные цены "
