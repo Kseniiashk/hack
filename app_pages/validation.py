@@ -26,7 +26,7 @@ def path_of(plant):
 
 
 @st.cache_data(show_spinner="Прогон по фабрикам…")
-def run(k):
+def run(k, _version="2"):  # _version в ключе кэша — бампни, чтобы сбросить старый кэш
     def titles(plant):
         rep = parse_tailings_xlsx(path_of(plant), plant)
         return [h.title for h in generate(diagnose(rep))]
@@ -53,11 +53,19 @@ res = run(k)
 st.markdown(t.validation_summary(res["_overall"]), unsafe_allow_html=True)
 
 ov = res["_overall"]
-# сводка метрик одной строкой: покрыто / лишнее / средняя точность
-avg_prec = sum(res[p].precision_topk for p in FILES) / len(FILES)
+
+
+def _attr(o, name, default=0):
+    return o.get(name, default) if isinstance(o, dict) else getattr(o, name, default)
+
+
+# сводка метрик: покрыто / лишнее / средняя точность (устойчиво к структуре кэша)
+avg_prec = sum(_attr(res[p], "precision_topk", 0) for p in FILES) / len(FILES)
+extra_total = ov.get("extra", sum(len(_attr(res[p], "extra", []) or []) for p in FILES))
 m1, m2, m3 = st.columns(3)
-m1.metric("Покрытие экспертов", f"{ov['recall']:.0%}", f"{ov['matched']}/{ov['total_gold']}")
-m2.metric("Предложено сверх", f"{ov['extra']}", "инженерных вариантов")
+m1.metric("Покрытие экспертов", f"{ov['recall']:.0%}",
+          f"{ov['matched']}/{ov['total_gold']}")
+m2.metric("Предложено сверх", f"{extra_total}", "инженерных вариантов")
 m3.metric("Точность топ-k", f"{avg_prec:.0%}", "совпало с эталоном")
 
 st.caption(
@@ -74,7 +82,7 @@ for plant in FILES:
 # Главный дифференциатор: что система предложила сверх экспертов
 extras = []
 for plant in FILES:
-    for x in res[plant].extra:
+    for x in (_attr(res[plant], "extra", []) or []):
         if x not in extras:
             extras.append(x)
 if extras:
