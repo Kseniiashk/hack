@@ -103,7 +103,11 @@ def generate(diag: Diagnosis, weights: dict = None, prices: dict = None,
             # Эффект: количественная модель по минералогии, если есть report.
             eff = None
             if report is not None:
-                eff = estimate_effect(card["id"], finding, report, prices)
+                try:
+                    eff = estimate_effect(card["id"], finding, report, prices)
+                except Exception:
+                    eff = None
+            if eff is not None:
                 val = eff.musd_exp
                 rationale = (
                     f"Диагноз: {finding.headline}. {finding.detail} "

@@ -128,7 +128,11 @@ for w in report.warnings:
 
 diag = diagnose(report, prices=prices)
 rag = get_rag_cached() if use_rag else None
-hyps = generate(diag, weights=weights, prices=prices, rag=rag, report=report)
+try:
+    hyps = generate(diag, weights=weights, prices=prices, rag=rag, report=report)
+except TypeError:
+    # запасной путь, если закэширована старая версия generate() без report
+    hyps = generate(diag, weights=weights, prices=prices, rag=rag)
 if apply_fb:
     fb.apply_to_hypotheses(hyps)
 kpi = compute_kpi(report, diag, hyps, prices, top_n=5)
