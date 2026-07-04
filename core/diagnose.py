@@ -17,9 +17,10 @@ Diagnostic Engine — превращает TailingsReport в список инт
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Optional
+import os
 import json
 
-from core.ingest import TailingsReport, SizeClassRow, ELEMENTS
+from core.ingest import TailingsReport, SizeClassRow
 
 # Классы, считающиеся «крупными» (недоизмельчение) и «тонким шламом».
 COARSE = {"+125", "+71", "-71 + 45"}

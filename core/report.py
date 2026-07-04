@@ -8,7 +8,6 @@ import csv
 import json
 import io
 
-from core.generate import Hypothesis
 from core.diagnose import Diagnosis
 
 
@@ -35,8 +34,6 @@ def hypotheses_to_csv(hyps: list) -> str:
 def build_docx(diag: Diagnosis, hyps: list, out_path: str, top_n: int = None):
     """Формирует бизнес-отчёт .docx с ранжированными гипотезами и обоснованием."""
     import docx
-    from docx.shared import Pt, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     doc = docx.Document()
     doc.add_heading("Фабрика гипотез — отчёт по снижению потерь металла с хвостами", level=0)

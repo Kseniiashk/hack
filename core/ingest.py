@@ -8,6 +8,7 @@ Ingest layer — превращает разнородные входные фа
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Optional
+import os
 import re
 import json
 
@@ -185,7 +186,6 @@ def parse_tailings_xlsx(path: str, plant: str = "") -> TailingsReport:
     for r in range(n):
         lc = label_col(r)
         lab = _norm(cell(r, lc)).lower()
-        row_vals = grid[r]
         if lab.startswith("шихта руд") and rep.feed_mass_t == 0:
             rep.feed_mass_t = _num(cell(r, lc + 1))
         # первая встреченная строка хвостов с массой и содержанием
@@ -308,7 +308,6 @@ def read_docx(path: str) -> str:
 
 
 if __name__ == "__main__":
-    import sys
     base = os.environ.get('CASE_DIR', 'data/examples')
     files = [
         ("Пример 1/Хвосты КГМК.xlsx", "КГМК"),

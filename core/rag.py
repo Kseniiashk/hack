@@ -157,7 +157,7 @@ class RAG:
                     normalize_embeddings=True)
                 np.save(EMB, self._emb)
             self.mode = "semantic"
-        except Exception as e:
+        except Exception:
             self.mode = "bm25"
 
     def search(self, query, k=2):

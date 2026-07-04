@@ -11,15 +11,15 @@
     - для раскрытия (доизмельчение/классификация/грохот/магнит) — это ЗАКРЫТЫЙ
       металл (сростки) в целевом классе: его надо вскрыть;
     - для флотации/шламов — РАСКРЫТЫЙ металл в тонком классе −10, теряемый флотацией.
-  Достижимая доля (capture) — какую часть адресуемого реально извлечём: задаётся
-  диапазоном по типу вмешательства (из практики обогащения) и корректируется
-  «зрелостью» узла (насколько radikально вмешательство).
+  Достижимая доля (capture) — какую часть адресуемого реально извлечём. Задаётся
+  диапазоном по типу вмешательства: раскрытие крупных сростков радикальнее, чем
+  донастройка режима, поэтому и вилки разные.
 
 Итог: tonnes_low/exp/high и деньги, плюс человекочитаемая расшифровка расчёта.
 Всё прозрачно и проверяемо экспертом — ключевое требование ТЗ.
 """
 from __future__ import annotations
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 
 # Тип вмешательства → (capture_low, capture_exp, capture_high) — доля адресуемого
 # металла, которую реально извлекаем. Основано на инженерной логике процесса.
@@ -102,7 +102,6 @@ def _class_of(rep, size):
 def estimate_effect(card_id: str, finding, report, prices) -> EffectEstimate:
     """Оценивает эффект вмешательства по реальной минералогии целевого класса."""
     e = EffectEstimate()
-    cl, ch = CAPTURE.get(card_id, DEFAULT_CAPTURE), None
     e.capture_low, e.capture_exp, e.capture_high = CAPTURE.get(card_id, DEFAULT_CAPTURE)
 
     c = _class_of(report, finding.size_class) if finding.size_class else None

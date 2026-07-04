@@ -11,9 +11,7 @@ Hypothesis Generator + Ranking.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
-from typing import Optional
 import os
-import json
 import yaml
 
 from core.diagnose import Diagnosis, Finding, DEFAULT_PRICES
