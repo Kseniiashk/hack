@@ -171,15 +171,28 @@ with tab_diag:
 with tab_hyp:
     st.markdown(f"<div class='rule'>Гипотезы — {len(hyps)}</div>",
                 unsafe_allow_html=True)
+    st.caption(
+        "Оценка эксперта корректирует место гипотезы в списке при следующих запусках: "
+        "подтверждённые поднимаются (множитель ранга до 1.3×), опровергнутые опускаются "
+        "(до 0.7×), отклонённые уходят вниз. Множитель показан в строке гипотезы.")
     for i, h in enumerate(hyps, 1):
         st.markdown(t.hypothesis(i, h), unsafe_allow_html=True)
         b1, b2, b3, _ = st.columns([1, 1, 1, 4])
         if b1.button("Подтвердить", key=f"c{h.id}{i}"):
-            feedback.record(h.id, feedback.CONFIRMED, plant=plant); st.rerun()
+            feedback.record(h.id, feedback.CONFIRMED, plant=plant)
+            st.toast(f"«{h.title[:40]}…» подтверждена — множитель "
+                     f"×{feedback.multiplier(h.id)}")
+            st.rerun()
         if b2.button("Опровергнуть", key=f"r{h.id}{i}"):
-            feedback.record(h.id, feedback.REFUTED, plant=plant); st.rerun()
+            feedback.record(h.id, feedback.REFUTED, plant=plant)
+            st.toast(f"«{h.title[:40]}…» опровергнута — множитель "
+                     f"×{feedback.multiplier(h.id)}")
+            st.rerun()
         if b3.button("Отклонить", key=f"x{h.id}{i}"):
-            feedback.record(h.id, feedback.REJECTED, plant=plant); st.rerun()
+            feedback.record(h.id, feedback.REJECTED, plant=plant)
+            st.toast(f"«{h.title[:40]}…» отклонена — множитель "
+                     f"×{feedback.multiplier(h.id)}")
+            st.rerun()
 
 with tab_graph:
     st.markdown("<div class='rule'>Связи: класс → причина → гипотеза → оборудование</div>",
@@ -200,19 +213,19 @@ with tab_eco:
     st.markdown("<div class='rule'>Извлечение и эффект</div>", unsafe_allow_html=True)
     st.markdown(t.eco_summary(kpi), unsafe_allow_html=True)
     st.markdown(
-        f"Потолок эффекта — {kpi.ceiling_musd:.1f} млн $/год: столько стоит весь "
-        f"извлекаемый металл в хвостах ({kpi.recoverable_ni_t:,.0f} т Ni и "
+        f"Потолок эффекта — {kpi.ceiling_musd:.1f} млн долларов в год: столько стоит "
+        f"весь извлекаемый металл в хвостах ({kpi.recoverable_ni_t:,.0f} т Ni и "
         f"{kpi.recoverable_cu_t:,.0f} т Cu). Портфель из пяти верхних гипотез "
-        f"возвращает около {kpi.portfolio_musd:.1f} млн $/год.")
+        f"возвращает около {kpi.portfolio_musd:.1f} млн долларов в год.")
     labels = {"UNDERGRIND": "Недоизмельчение", "SLIMES": "Потеря шламов",
               "MIDGRIND": "Средний класс"}
     c1, c2 = st.columns(2)
     with c1:
-        st.caption("Чувствительность к ценам металлов, млн $/год")
+        st.caption("Чувствительность к ценам металлов, млн долл./год")
         sens = pd.DataFrame(kpi.sensitivity).set_index("scenario")
         st.bar_chart(sens, horizontal=True)
     with c2:
-        st.caption("Вклад причин в потери, млн $/год")
+        st.caption("Вклад причин в потери, млн долл./год")
         rows = [{"Причина": labels.get(f.code, f.code), "M$": round(f.value_musd, 1)}
                 for f in diag.findings if f.code != "RECOVERABLE_CEILING"]
         df = pd.DataFrame(rows).groupby("Причина")["M$"].sum()

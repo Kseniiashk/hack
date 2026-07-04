@@ -113,7 +113,7 @@ def summary(report, ceiling_musd):
                    f"{report.tail_el28_pct:.3f}%")
             + cell("Cu в хвостах", f"{report.tail_el29_t:,.0f}",
                    f"{report.tail_el29_pct:.3f}%")
-            + cell("Потолок эффекта", f"{ceiling_musd:.0f}", "млн $/год")
+            + cell("Потолок эффекта", f"{ceiling_musd:.0f}", "млн долл./год")
             + "</div>")
 
 
@@ -128,7 +128,7 @@ def finding(f):
     return (f"<div class='finding'>"
             f"<div class='cause'>{e(lbl)}</div>"
             f"<div class='head'><span class='name'>{e(f.headline)}</span>"
-            f"<span class='cost'>{f.value_musd:.1f} млн $/год</span></div>"
+            f"<span class='cost'>{f.value_musd:.1f} млн долл./год</span></div>"
             f"<div class='desc'>{e(f.detail)}</div></div>")
 
 
@@ -150,13 +150,18 @@ def hypothesis(i, h):
                         + (f", с.{c['page']}" if c.get('page') else "")
                         for c in h.citations)
         cite = f"<div class='cite'>{e(h.citations[0]['snippet'])} — {cc}</div>"
+    causes = {"UNDERGRIND": "недоизмельчение", "SLIMES": "потеря шламов",
+              "MIDGRIND": "средний класс"}
+    cause = causes.get(h.trigger_finding, h.trigger_finding.lower())
+    mult = getattr(h, "fb_multiplier", 1.0)
+    fb = f" · оценка ×{mult}" if mult and mult != 1.0 else ""
     return (f"<div class='hyp'>"
             f"<div class='head'><span class='num'>{i:02d}</span>"
             f"<span class='name'>{e(h.title)}</span>"
-            f"<span class='val'>{h.value_musd:.1f} млн $/год{rng}</span></div>"
+            f"<span class='val'>{h.value_musd:.1f} млн долл./год{rng}</span></div>"
             f"<div class='meta'>score {h.score:.2f} · реализуемость {h.feasibility:.2f} · "
-            f"новизна {h.novelty:.2f} · риск {h.risk:.2f} · {e(h.trigger_finding.lower())} "
-            f"· класс {e(h.size_class)} мкм</div>"
+            f"новизна {h.novelty:.2f} · риск {h.risk:.2f} · {e(cause)} "
+            f"· класс {e(h.size_class)} мкм{fb}</div>"
             f"<div class='body'>{e(body)}</div>"
             f"<div class='line'><b>Механизм:</b> {e(h.mechanism)}</div>"
             f"{equip}"
@@ -174,7 +179,7 @@ def eco_summary(kpi):
                    f"+{kpi.new_recovery_ni_pct - kpi.recovery_ni_pct:.2f} п.п.")
             + cell("Ni в хвостах", f"{kpi.tail_ni_pct:.3f}%",
                    f"прогноз {kpi.new_tail_ni_pct:.3f}%")
-            + cell("Эффект топ-5", f"{kpi.portfolio_musd:.1f}", "млн $/год")
+            + cell("Эффект топ-5", f"{kpi.portfolio_musd:.1f}", "млн долл./год")
             + "</div>")
 
 
