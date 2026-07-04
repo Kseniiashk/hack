@@ -204,16 +204,20 @@ with tab_eco:
         f"извлекаемый металл в хвостах ({kpi.recoverable_ni_t:,.0f} т Ni и "
         f"{kpi.recoverable_cu_t:,.0f} т Cu). Портфель из пяти верхних гипотез "
         f"возвращает около {kpi.portfolio_musd:.1f} млн $/год.")
+    labels = {"UNDERGRIND": "Недоизмельчение", "SLIMES": "Потеря шламов",
+              "MIDGRIND": "Средний класс"}
     c1, c2 = st.columns(2)
     with c1:
-        st.caption("Чувствительность к ценам металлов")
-        st.bar_chart(pd.DataFrame(kpi.sensitivity).set_index("scenario"))
+        st.caption("Чувствительность к ценам металлов, млн $/год")
+        sens = pd.DataFrame(kpi.sensitivity).set_index("scenario")
+        st.bar_chart(sens, horizontal=True)
     with c2:
         st.caption("Вклад причин в потери, млн $/год")
-        df = pd.DataFrame([{"Причина": f.code, "M$": round(f.value_musd, 1)}
-                           for f in diag.findings if f.code != "RECOVERABLE_CEILING"])
+        rows = [{"Причина": labels.get(f.code, f.code), "M$": round(f.value_musd, 1)}
+                for f in diag.findings if f.code != "RECOVERABLE_CEILING"]
+        df = pd.DataFrame(rows).groupby("Причина")["M$"].sum()
         if not df.empty:
-            st.bar_chart(df.groupby("Причина")["M$"].sum())
+            st.bar_chart(df, horizontal=True)
     st.markdown("<div class='note'>Оценки ориентировочные: цены задаются слева, "
                 "содержание шихты — по типовому балансу отчёта.</div>",
                 unsafe_allow_html=True)
