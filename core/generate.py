@@ -46,6 +46,8 @@ class Hypothesis:
     stage: str = ""
     # метрики
     value_musd: float = 0.0       # ожидаемый эффект, млн $/год
+    value_low: float = 0.0        # пессимистичная оценка (модель эффекта)
+    value_high: float = 0.0       # оптимистичная оценка
     value_norm: float = 0.0       # 0..1
     feasibility: float = 0.0
     novelty: float = 0.0
@@ -66,13 +68,17 @@ def _value_for(card: dict, finding: Finding, prices: dict) -> float:
 
 
 def generate(diag: Diagnosis, weights: dict = None, prices: dict = None,
-             rag=None, exclude_ids: set = None) -> list:
-    """Возвращает ранжированный список Hypothesis."""
+             rag=None, exclude_ids: set = None, report=None) -> list:
+    """Возвращает ранжированный список Hypothesis.
+    Если передан report — эффект считается количественной моделью по реальной
+    минералогии (диапазон low/exp/high), иначе — через effect_frac."""
     weights = {**DEFAULT_WEIGHTS, **(weights or {})}
     prices = prices or DEFAULT_PRICES
     exclude_ids = exclude_ids or set()
     catalog = load_catalog()
     by_id = {c["id"]: c for c in catalog}
+    if report is not None:
+        from core.effect_model import estimate_effect
 
     raw: list[Hypothesis] = []
     seen = set()  # (card_id, size_class) — избегаем дублей
@@ -92,17 +98,25 @@ def generate(diag: Diagnosis, weights: dict = None, prices: dict = None,
                 continue
             seen.add(key)
 
-            val = _value_for(card, finding, prices)
             risk = 0.5 * card.get("risk_tech", 0.4) + 0.5 * card.get("risk_econ", 0.4)
 
-            # Обоснование с числами из находки.
-            rationale = (
-                f"Диагноз: {finding.headline}. "
-                f"{finding.detail} "
-                f"Механизм вмешательства: {card['mechanism'].strip()} "
-                f"При отыгрыше ~{int(card.get('effect_frac',0.15)*100)}% этих потерь "
-                f"ожидаемый эффект ≈ {val:.1f} млн $/год."
-            )
+            # Эффект: количественная модель по минералогии, если есть report.
+            eff = None
+            if report is not None:
+                eff = estimate_effect(card["id"], finding, report, prices)
+                val = eff.musd_exp
+                rationale = (
+                    f"Диагноз: {finding.headline}. {finding.detail} "
+                    f"Механизм: {card['mechanism'].strip()} {eff.explain}"
+                )
+            else:
+                val = _value_for(card, finding, prices)
+                rationale = (
+                    f"Диагноз: {finding.headline}. {finding.detail} "
+                    f"Механизм вмешательства: {card['mechanism'].strip()} "
+                    f"При отыгрыше ~{int(card.get('effect_frac',0.15)*100)}% этих потерь "
+                    f"ожидаемый эффект ≈ {val:.1f} млн $/год."
+                )
 
             h = Hypothesis(
                 id=card["id"],
@@ -114,6 +128,8 @@ def generate(diag: Diagnosis, weights: dict = None, prices: dict = None,
                 equipment=card.get("equipment", []),
                 stage=card.get("stage", ""),
                 value_musd=val,
+                value_low=(eff.musd_low if eff else val * 0.6),
+                value_high=(eff.musd_high if eff else val * 1.5),
                 feasibility=card.get("feasibility", 0.5),
                 novelty=card.get("novelty", 0.5),
                 risk=risk,

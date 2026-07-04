@@ -285,7 +285,8 @@ def hypothesis_html(i, h):
     <div class='score'>Score {h.score:.2f}</div>
   </div>
   <div class='metrics'>
-    <span><b style='color:{COPPER}'>{h.value_musd:.1f}</b> M$/год</span>
+    <span><b style='color:{COPPER}'>{h.value_musd:.1f}</b> M$/год
+      <span style='color:{FAINT};font-size:11px'>({getattr(h,'value_low',0):.1f}–{getattr(h,'value_high',0):.1f})</span></span>
     <span>реализуемость <b>{h.feasibility:.2f}</b></span>
     <span>новизна <b>{h.novelty:.2f}</b></span>
     <span>риск <b>{h.risk:.2f}</b></span>
