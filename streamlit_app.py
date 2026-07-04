@@ -43,6 +43,7 @@ st.markdown(ui.inject_css(), unsafe_allow_html=True)
 pages = [
     st.Page("app_pages/home.py", title="Главная", icon=":material/home:", default=True),
     st.Page("app_pages/analyze.py", title="Анализ", icon=":material/insights:"),
+    st.Page("app_pages/validation.py", title="Валидация", icon=":material/verified:"),
     st.Page("app_pages/about.py", title="О проекте", icon=":material/description:"),
 ]
 nav = st.navigation(pages, position="sidebar")

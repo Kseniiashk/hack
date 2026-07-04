@@ -367,3 +367,58 @@ def landing_flow_html():
   <div class='step'><div class='k'>05</div><h4>Экспорт</h4>
     <p>DOCX / CSV / JSON + интерактивный граф связей.</p></div>
 </div>"""
+
+
+# --- Валидация (метрика точности) --------------------------------------------
+def validation_hero_html(overall):
+    r = overall["recall"]
+    color = TEAL if r >= 0.9 else (AMBER if r >= 0.7 else COPPER)
+    return f"""
+<div class='val-hero'>
+  <div class='val-num' style='color:{color}'>{r:.0%}</div>
+  <div class='val-cap'>совпадение с гипотезами экспертов</div>
+  <div class='val-sub'>{overall['matched']} из {overall['total_gold']} эталонных гипотез
+     воспроизведены системой на {overall['plants']} фабриках</div>
+</div>"""
+
+
+def validation_plant_html(r):
+    color = TEAL if r.recall >= 0.9 else (AMBER if r.recall >= 0.7 else COPPER)
+    rows = "".join(
+        f"<div class='vrow ok'><span class='vr-rank'>#{m['rank']}</span>"
+        f"<span class='vr-t'>{esc(m['gold'])}</span></div>" for m in r.matches)
+    miss = "".join(
+        f"<div class='vrow miss'><span class='vr-rank'>—</span>"
+        f"<span class='vr-t'>{esc(g)}</span></div>" for g in r.missed)
+    return f"""
+<div class='vcard'>
+  <div class='vcard-head'>
+    <span class='vp'>{esc(r.plant)}</span>
+    <span class='vbar-wrap'><span class='vbar' style='width:{r.recall*100:.0f}%;
+      background:{color}'></span></span>
+    <span class='vpct' style='color:{color}'>{r.recall:.0%}</span>
+  </div>
+  <div class='vlist'>{rows}{miss}</div>
+</div>"""
+
+
+VALIDATION_CSS = f"""
+.val-hero {{ text-align:center; padding:24px 0 10px; }}
+.val-num {{ font-family:var(--mono); font-size:84px; font-weight:700; line-height:1;
+  letter-spacing:-.03em; }}
+.val-cap {{ font-size:17px; color:{INK}; margin-top:6px; font-weight:600; }}
+.val-sub {{ font-size:14px; color:{DIM}; margin-top:8px; }}
+.vcard {{ background:{PANEL}; border:1px solid {LINE}; border-radius:13px;
+  padding:15px 17px; margin-bottom:12px; }}
+.vcard-head {{ display:flex; align-items:center; gap:14px; margin-bottom:10px; }}
+.vp {{ font-size:16px; font-weight:600; color:{INK}; min-width:120px; }}
+.vbar-wrap {{ flex:1; height:8px; background:{PANEL2}; border-radius:5px; overflow:hidden; }}
+.vbar {{ display:block; height:100%; border-radius:5px; }}
+.vpct {{ font-family:var(--mono); font-weight:600; min-width:48px; text-align:right; }}
+.vrow {{ display:flex; gap:12px; padding:5px 0; font-size:13px; border-top:1px solid {LINE}; }}
+.vr-rank {{ font-family:var(--mono); color:{COPPER}; min-width:34px; }}
+.vrow.miss .vr-rank {{ color:{FAINT}; }}
+.vrow.miss .vr-t {{ color:{FAINT}; }}
+.vr-t {{ color:{DIM}; }}
+.vrow.ok .vr-t {{ color:{INK}; }}
+"""
